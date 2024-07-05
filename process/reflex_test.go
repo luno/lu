@@ -29,7 +29,7 @@ type consumer struct {
 
 func (c *consumer) Name() string { return "test" }
 
-func (c *consumer) Consume(ctx context.Context, event *reflex.Event) error {
+func (c *consumer) Consume(_ context.Context, _ *reflex.Event) error {
 	return errors.New("foo")
 }
 
