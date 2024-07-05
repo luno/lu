@@ -12,6 +12,7 @@ import (
 	"k8s.io/utils/clock"
 	clock_testing "k8s.io/utils/clock/testing"
 
+	"github.com/luno/lu"
 	"github.com/luno/lu/process"
 )
 
@@ -231,7 +232,7 @@ func TestContextLoopMaxError(t *testing.T) {
 		{
 			name:      "fail after break",
 			maxErrors: 0,
-			returnErr: process.ErrBreakContextLoop,
+			returnErr: lu.ErrBreakContextLoop,
 		},
 	}
 

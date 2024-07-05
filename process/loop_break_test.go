@@ -31,6 +31,7 @@ func TestLifecycle(t *testing.T) {
 	a.AddProcess(
 		process.ContextLoop(noOpContextFunc(), noOpProcessFunc(), process.WithName("noop")),
 		process.ContextLoop(noOpContextFunc(), errProcessFunc(), process.WithName("error")),
+		process.ContextLoop(noOpContextFunc(), panicProcessFunc(), process.WithName("panic")),
 		process.ContextLoop(noOpContextFunc(), breakProcessFunc(), process.WithName("continue loop")),
 		process.ContextLoop(noOpContextFunc(), breakProcessFunc(), process.WithName("break loop"), process.WithBreakableLoop()),
 	)
@@ -47,6 +48,8 @@ func TestLifecycle(t *testing.T) {
 		test.AnyOrder(
 			test.Event{Type: lu.ProcessStart, Name: "noop"},
 			test.Event{Type: lu.ProcessStart, Name: "error"},
+			test.Event{Type: lu.ProcessStart, Name: "panic"},
+			test.Event{Type: lu.ProcessEnd, Name: "panic"},
 			test.Event{Type: lu.ProcessStart, Name: "continue loop"},
 			test.Event{Type: lu.ProcessStart, Name: "break loop"},
 		),
@@ -74,12 +77,20 @@ func TestLifecycle(t *testing.T) {
 }
 
 func breakProcessFunc() func(context.Context) error {
-	return func(_ context.Context) error { return process.ErrBreakContextLoop }
+	return func(_ context.Context) error {
+		return lu.ErrBreakContextLoop
+	}
 }
 
 func errProcessFunc() func(context.Context) error {
 	return func(_ context.Context) error {
 		return errors.New("processing fail")
+	}
+}
+
+func panicProcessFunc() func(context.Context) error {
+	return func(_ context.Context) error {
+		panic("processing paniced")
 	}
 }
 

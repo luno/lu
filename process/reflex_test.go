@@ -6,6 +6,7 @@ import (
 
 	"github.com/luno/jettison/errors"
 	"github.com/luno/jettison/jtest"
+	"github.com/luno/lu"
 	"github.com/luno/reflex"
 	"github.com/luno/reflex/rpatterns"
 )
@@ -98,7 +99,7 @@ func Test_makeBreakableProcessFunc(t *testing.T) {
 		{
 			name: "Break Loop Error: ToHeadStream: Head Reached",
 			run:  func(_ context.Context, _ reflex.Spec) error { return reflex.ErrHeadReached },
-			err:  ErrBreakContextLoop,
+			err:  lu.ErrBreakContextLoop,
 		},
 		{
 			name: "Error: Processing Error",

@@ -97,7 +97,7 @@ func makeBreakableProcessFunc(s reflex.Spec, run RunFunc) lu.ProcessFunc {
 	return func(ctx context.Context) error {
 		err := pf(ctx)
 		if reflex.IsHeadReachedErr(err) {
-			return errors.Wrap(ErrBreakContextLoop, err.Error())
+			return errors.Wrap(lu.ErrBreakContextLoop, err.Error())
 		}
 		return err
 	}

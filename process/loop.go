@@ -7,16 +7,11 @@ import (
 
 	"github.com/go-stack/stack"
 	"github.com/luno/jettison/errors"
-	"github.com/luno/jettison/j"
 	"github.com/luno/jettison/log"
 	"github.com/luno/jettison/trace"
 
 	"github.com/luno/lu"
 )
-
-// ErrBreakContextLoop acts as a translation error between the reflex domain and the lu process one. It will be
-// returned as an alternative when (correctly configured) a reflex stream returns a reflex.ErrSteamToHead error.
-var ErrBreakContextLoop = errors.New("the context loop has been stopped", j.C("ERR_f3833d51676ea908"))
 
 func defaultLoopOptions() options {
 	o := options{
@@ -72,7 +67,7 @@ func wrapContextLoop(getCtx ContextFunc, f lu.ProcessFunc, opts options) lu.Proc
 			err := runWithContext(ctx, getCtx, func(ctx context.Context) error {
 				err := f(ctx)
 				sleep := opts.sleep()
-				if opts.isBreakableLoop && errors.Is(err, ErrBreakContextLoop) {
+				if opts.isBreakableLoop && errors.Is(err, lu.ErrBreakContextLoop) {
 					return err
 				}
 				if err != nil && !errors.IsAny(err, context.Canceled) {
@@ -94,7 +89,7 @@ func wrapContextLoop(getCtx ContextFunc, f lu.ProcessFunc, opts options) lu.Proc
 				opts.afterLoop()
 				return nil
 			})
-			if errors.Is(err, ErrBreakContextLoop) {
+			if errors.Is(err, lu.ErrBreakContextLoop) {
 				log.Info(ctx, "context loop terminated", log.WithError(err))
 				return nil
 			}

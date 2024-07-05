@@ -55,7 +55,7 @@ func TestLifecycle(t *testing.T) {
 		},
 		process.ContextLoop(
 			func(ctx context.Context) (context.Context, context.CancelFunc, error) { return ctx, func() {}, nil },
-			func(ctx context.Context) error { return process.ErrBreakContextLoop },
+			func(ctx context.Context) error { return lu.ErrBreakContextLoop },
 			process.WithName("break loop"),
 			process.WithBreakableLoop()),
 	)

@@ -2,7 +2,14 @@ package lu
 
 import (
 	"context"
+
+	"github.com/luno/jettison/errors"
+	"github.com/luno/jettison/j"
 )
+
+// ErrBreakContextLoop acts as a translation error between the reflex domain and the lu process one. It will be
+// returned as an alternative when (correctly configured) a reflex stream returns a reflex.ErrSteamToHead error.
+var ErrBreakContextLoop = errors.New("the context loop has been stopped", j.C("ERR_f3833d51676ea908"))
 
 // ProcessFunc is a core process. See Process.Run for more details
 type ProcessFunc func(ctx context.Context) error
