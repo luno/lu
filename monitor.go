@@ -54,15 +54,7 @@ func (m *monitor) launch() error {
 }
 
 func (m *monitor) shouldExit(err error) bool {
-	select {
-	case <-m.ctx.Done():
-		return true
-	default:
-		if errors.IsAny(err, nil, errProcessPanicked, ErrBreakContextLoop) {
-			return true
-		}
-	}
-	return false
+	return m.ctx.Err() != nil || errors.IsAny(err, nil, errProcessPanicked, ErrBreakContextLoop)
 }
 
 func labelContext(processName string, ctx context.Context) context.Context {
