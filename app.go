@@ -39,6 +39,10 @@ type App struct {
 	// This hook is only called when using Run not when using Shutdown
 	OnShutdownErr func(ctx context.Context, err error) error
 
+	// MonitorAll determines if all running processes will be monitored by default rather than
+	// on a one by one basis.
+	MonitorAll bool
+
 	startupHooks  []hook
 	shutdownHooks []hook
 
@@ -59,6 +63,7 @@ func (a *App) setDefaults() {
 	if a.OnEvent == nil {
 		a.OnEvent = func(context.Context, Event) {}
 	}
+	a.MonitorAll = false
 }
 
 // OnStartUp will call f before the app starts working
@@ -216,16 +221,53 @@ func (a *App) Launch(ctx context.Context) error {
 		p := &a.processes[i]
 		p.app = a
 
-		doneCh := make(chan struct{})
-		a.processRunning[i] = doneCh
 		if p.Run == nil {
-			close(doneCh)
+			close(setProcessRunning(a, i))
 			continue
 		}
-		m := processMonitor(a.ctx, a, i)
-		eg.Go(m.launch)
+
+		ctx = labelContext(a.ctx, p.Name)
+		if a.MonitorAll || p.Monitor {
+			eg.Go(a.monitor(ctx, i))
+		} else {
+			eg.Go(a.launch(ctx, i))
+		}
+
 	}
 	return ctx.Err()
+}
+
+func (a *App) launch(ctx context.Context, i int) func() error {
+	p := &(a.processes[i])
+	return func() error {
+		defer close(setProcessRunning(a, i))
+		a.OnEvent(ctx, Event{Type: ProcessStart, Name: p.Name})
+		defer a.OnEvent(ctx, Event{Type: ProcessEnd, Name: p.Name})
+		// NOTE: Any error returned by any of the processes will cause the entire App to terminate unless this
+		// has been called from inside the monitor function
+		return p.Run(ctx)
+	}
+}
+
+func (a *App) monitor(ctx context.Context, i int) func() error {
+	return func() error {
+		var err error
+		for {
+			err = nil
+			func() {
+				defer cleanPanic()(&err)
+				err = a.launch(ctx, i)()
+			}()
+			if shouldExit(ctx, err) {
+				break
+			}
+		}
+		if err != nil {
+			// NoReturnErr: Record why a process exited abnormally
+			log.Error(ctx, err)
+		}
+		return ctx.Err()
+	}
 }
 
 // WaitForShutdown returns a channel that waits for the application to be cancelled.
@@ -380,4 +422,20 @@ func handleShutdownErr(a *App, ac AppContext, err error) error {
 		return a.OnShutdownErr(ac.TerminationContext, err)
 	}
 	return err
+}
+
+func labelContext(ctx context.Context, processName string) context.Context {
+	if processName != "" {
+		ctx = log.ContextWith(ctx, j.KV("process", processName))
+		ctx = pprof.WithLabels(ctx, pprof.Labels("lu_process", processName))
+	}
+	pprof.SetGoroutineLabels(ctx)
+	return ctx
+}
+
+func setProcessRunning(a *App, i int) chan struct{} {
+	(&a.processes[i]).app = a
+	doneCh := make(chan struct{})
+	a.processRunning[i] = doneCh
+	return doneCh
 }

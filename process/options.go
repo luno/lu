@@ -28,6 +28,9 @@ type options struct {
 	// EXPERIMENTAL: Added for the purposes of production testing isolated cases with the new breakable behaviour
 	// Flag to determine if we allow loops to break when an ErrBreakContextLoop is returned from the process function.
 	isBreakableLoop bool
+
+	// Determines if the process should be monitored by the app when running to handle abnormal terminations.
+	monitor bool
 }
 
 // SleepFunc returns how long to sleep between loops when there was no error.
@@ -181,5 +184,13 @@ func WithMaxErrors(v uint) Option {
 func WithBreakableLoop() Option {
 	return func(o *options) {
 		o.isBreakableLoop = true
+	}
+}
+
+// WithMonitor sets a flag that determines if the process should be monitored by the app to
+// handle abnormal terminations
+func WithMonitor() Option {
+	return func(o *options) {
+		o.monitor = true
 	}
 }

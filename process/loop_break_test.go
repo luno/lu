@@ -15,65 +15,80 @@ import (
 )
 
 func TestLifecycle(t *testing.T) {
-	ev := make(test.EventLog, 100)
-	a := &lu.App{OnEvent: ev.Append}
+	testcases := []struct {
+		name       string
+		monitorAll bool
+	}{
+		{
+			name: "No Default Monitoring",
+		},
+		{
+			name:       "Monitor All",
+			monitorAll: true,
+		},
+	}
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
 
-	a.OnStartUp(func(ctx context.Context) error {
-		log.Info(ctx, "starting up")
-		return nil
-	}, lu.WithHookName("basic start hook"))
+			ev := make(test.EventLog, 100)
+			a := &lu.App{OnEvent: ev.Append, MonitorAll: false}
 
-	a.OnShutdown(func(ctx context.Context) error {
-		log.Info(ctx, "stopping")
-		return nil
-	}, lu.WithHookName("basic stop hook"))
+			a.OnStartUp(func(ctx context.Context) error {
+				log.Info(ctx, "starting up")
+				return nil
+			}, lu.WithHookName("basic start hook"))
 
-	a.AddProcess(
-		process.ContextLoop(noOpContextFunc(), noOpProcessFunc(), process.WithName("noop")),
-		process.ContextLoop(noOpContextFunc(), errProcessFunc(), process.WithName("error")),
-		process.ContextLoop(noOpContextFunc(), panicProcessFunc(), process.WithName("panic")),
-		process.ContextLoop(noOpContextFunc(), breakProcessFunc(), process.WithName("continue loop")),
-		process.ContextLoop(noOpContextFunc(), breakProcessFunc(), process.WithName("break loop"), process.WithBreakableLoop()),
-	)
+			a.OnShutdown(func(ctx context.Context) error {
+				log.Info(ctx, "stopping")
+				return nil
+			}, lu.WithHookName("basic stop hook"))
 
-	err := a.Launch(context.Background())
-	jtest.AssertNil(t, err)
+			a.AddProcess(
+				process.ContextLoop(noOpContextFunc(), noOpProcessFunc(), process.WithName("noop")),
+				process.ContextLoop(noOpContextFunc(), errProcessFunc(), process.WithName("error")),
+				process.ContextLoop(noOpContextFunc(), panicProcessFunc(), process.WithName("panic"), process.WithMonitor()),
+				process.ContextLoop(noOpContextFunc(), breakProcessFunc(), process.WithName("continue loop")),
+				process.ContextLoop(noOpContextFunc(), breakProcessFunc(), process.WithName("break loop"), process.WithBreakableLoop()),
+			)
 
-	time.Sleep(250 * time.Millisecond)
+			err := a.Launch(context.Background())
+			jtest.AssertNil(t, err)
 
-	test.AssertEvents(t, ev,
-		test.Event{Type: lu.AppStartup},
-		test.Event{Type: lu.PreHookStart, Name: "basic start hook"},
-		test.Event{Type: lu.PostHookStart, Name: "basic start hook"},
-		test.AnyOrder(
-			test.Event{Type: lu.ProcessStart, Name: "noop"},
-			test.Event{Type: lu.ProcessStart, Name: "error"},
-			test.Event{Type: lu.ProcessStart, Name: "panic"},
-			test.Event{Type: lu.ProcessEnd, Name: "panic"},
-			test.Event{Type: lu.ProcessStart, Name: "continue loop"},
-			test.Event{Type: lu.ProcessStart, Name: "break loop"},
-		),
-		test.AnyOrder(
-			test.Event{Type: lu.AppRunning},
-			test.Event{Type: lu.ProcessEnd, Name: "break loop"},
-		),
-	)
+			time.Sleep(250 * time.Millisecond)
 
-	err = a.Shutdown()
-	jtest.AssertNil(t, err)
+			test.AssertEvents(t, ev,
+				test.Event{Type: lu.AppStartup},
+				test.Event{Type: lu.PreHookStart, Name: "basic start hook"},
+				test.Event{Type: lu.PostHookStart, Name: "basic start hook"},
+				test.Event{Type: lu.AppRunning},
+				test.AnyOrder(
+					test.Event{Type: lu.ProcessStart, Name: "noop"},
+					test.Event{Type: lu.ProcessStart, Name: "error"},
+					test.Event{Type: lu.ProcessStart, Name: "panic"},
+					test.Event{Type: lu.ProcessEnd, Name: "panic"},
+					test.Event{Type: lu.ProcessStart, Name: "continue loop"},
+					test.Event{Type: lu.ProcessStart, Name: "break loop"},
+					test.Event{Type: lu.ProcessEnd, Name: "break loop"},
+				),
+			)
 
-	close(ev)
-	test.AssertEvents(t, ev,
-		test.Event{Type: lu.AppTerminating},
-		test.AnyOrder(
-			test.Event{Type: lu.ProcessEnd, Name: "noop"},
-			test.Event{Type: lu.ProcessEnd, Name: "error"},
-			test.Event{Type: lu.ProcessEnd, Name: "continue loop"},
-		),
-		test.Event{Type: lu.PreHookStop, Name: "basic stop hook"},
-		test.Event{Type: lu.PostHookStop, Name: "basic stop hook"},
-		test.Event{Type: lu.AppTerminated},
-	)
+			err = a.Shutdown()
+			jtest.AssertNil(t, err)
+
+			close(ev)
+			test.AssertEvents(t, ev,
+				test.Event{Type: lu.AppTerminating},
+				test.AnyOrder(
+					test.Event{Type: lu.ProcessEnd, Name: "noop"},
+					test.Event{Type: lu.ProcessEnd, Name: "error"},
+					test.Event{Type: lu.ProcessEnd, Name: "continue loop"},
+				),
+				test.Event{Type: lu.PreHookStop, Name: "basic stop hook"},
+				test.Event{Type: lu.PostHookStop, Name: "basic stop hook"},
+				test.Event{Type: lu.AppTerminated},
+			)
+		})
+	}
 }
 
 func breakProcessFunc() func(context.Context) error {
