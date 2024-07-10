@@ -201,8 +201,6 @@ func (a *App) Launch(ctx context.Context) error {
 		return err
 	}
 
-	a.OnEvent(ctx, Event{Type: AppRunning})
-
 	// Create the app context now
 	appCtx, appCancel := context.WithCancel(ctx)
 	eg, appCtx := errgroup.WithContext(appCtx)
@@ -228,15 +226,16 @@ func (a *App) Launch(ctx context.Context) error {
 			ctx = pprof.WithLabels(ctx, pprof.Labels("lu_process", p.Name))
 		}
 
+		a.OnEvent(ctx, Event{Type: ProcessStart, Name: p.Name})
 		eg.Go(func() error {
 			pprof.SetGoroutineLabels(ctx)
 			defer close(doneCh)
-			a.OnEvent(ctx, Event{Type: ProcessStart, Name: p.Name})
 			defer a.OnEvent(ctx, Event{Type: ProcessEnd, Name: p.Name})
 			// NOTE: Any error returned by any of the processes will cause the entire App to terminate
 			return p.Run(ctx)
 		})
 	}
+	a.OnEvent(ctx, Event{Type: AppRunning})
 	return ctx.Err()
 }
 

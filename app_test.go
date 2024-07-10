@@ -73,12 +73,14 @@ func TestLifecycle(t *testing.T) {
 		test.Event{Type: lu.AppStartup},
 		test.Event{Type: lu.PreHookStart, Name: "basic start hook"},
 		test.Event{Type: lu.PostHookStart, Name: "basic start hook"},
-		test.Event{Type: lu.AppRunning},
 		test.AnyOrder(
 			test.Event{Type: lu.ProcessStart, Name: "one"},
 			test.Event{Type: lu.ProcessStart, Name: "two"},
 			test.Event{Type: lu.ProcessStart, Name: "three"},
 			test.Event{Type: lu.ProcessStart, Name: "break loop"},
+		),
+		test.AnyOrder(
+			test.Event{Type: lu.AppRunning},
 			test.Event{Type: lu.ProcessEnd, Name: "break loop"},
 		),
 		test.Event{Type: lu.AppTerminating},
