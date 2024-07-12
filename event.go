@@ -13,7 +13,7 @@ const (
 	AppStartup               // First event, emitted right at the start
 	PreHookStart             // Emitted just before running each Hook.Start
 	PostHookStart            // Emitted just after completing a Hook.Start
-	AppRunning               // Emitted after running every startup Hook
+	AppRunning               // Emitted after starting every process
 	ProcessStart             // Emitted before starting to run a Process
 	ProcessEnd               // Emitted when a Process terminates
 	AppTerminating           // Emitted when the application starts termination
