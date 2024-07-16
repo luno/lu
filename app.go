@@ -219,28 +219,29 @@ func (a *App) Launch(ctx context.Context) error {
 		p := &a.processes[i]
 		p.app = a
 
+		doneCh := make(chan struct{})
+		a.processRunning[i] = doneCh
 		if p.Run == nil {
-			close(setProcessRunning(a, i))
+			close(doneCh)
 			continue
 		}
 
-		ctx = labelContext(a.ctx, p.Name)
+		ctx = labelContext(p.app.ctx, p.Name)
+		a.OnEvent(ctx, Event{Type: ProcessStart, Name: p.Name})
 		if a.RecoverAll || p.Recover {
-			eg.Go(a.recover(ctx, i))
+			eg.Go(a.recover(ctx, p, doneCh))
 		} else {
-			eg.Go(a.launch(ctx, i))
+			eg.Go(a.dontRecover(ctx, p, doneCh))
 		}
 
 	}
+
 	a.OnEvent(ctx, Event{Type: AppRunning})
 	return ctx.Err()
 }
 
-func (a *App) launch(ctx context.Context, i int) func() error {
-	p := &(a.processes[i])
+func (a *App) launch(ctx context.Context, p *Process) func() error {
 	return func() error {
-		defer close(setProcessRunning(a, i))
-		a.OnEvent(ctx, Event{Type: ProcessStart, Name: p.Name})
 		defer a.OnEvent(ctx, Event{Type: ProcessEnd, Name: p.Name})
 		// NOTE: Any error returned by any of the processes will cause the entire App to terminate unless this
 		// has been called from inside the recover function
@@ -248,14 +249,22 @@ func (a *App) launch(ctx context.Context, i int) func() error {
 	}
 }
 
-func (a *App) recover(ctx context.Context, i int) func() error {
+func (a *App) dontRecover(ctx context.Context, p *Process, doneCh chan struct{}) func() error {
 	return func() error {
+		defer close(doneCh)
+		return a.launch(ctx, p)()
+	}
+}
+
+func (a *App) recover(ctx context.Context, p *Process, doneCh chan struct{}) func() error {
+	return func() error {
+		defer close(doneCh)
 		var err error
 		for {
 			err = nil
 			func() {
 				defer cleanPanic()(&err)
-				err = a.launch(ctx, i)()
+				err = a.launch(ctx, p)()
 			}()
 			if shouldExit(ctx, err) {
 				break
@@ -430,11 +439,4 @@ func labelContext(ctx context.Context, processName string) context.Context {
 	}
 	pprof.SetGoroutineLabels(ctx)
 	return ctx
-}
-
-func setProcessRunning(a *App, i int) chan struct{} {
-	(&a.processes[i]).app = a
-	doneCh := make(chan struct{})
-	a.processRunning[i] = doneCh
-	return doneCh
 }
