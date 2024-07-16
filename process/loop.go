@@ -57,7 +57,7 @@ func ContextLoop(getCtx ContextFunc, f lu.ProcessFunc, lo ...Option) lu.Process 
 		Shutdown: func(ctx context.Context) error {
 			return nil
 		},
-		Monitor: opts.monitor,
+		Recover: opts.recover,
 	}
 }
 

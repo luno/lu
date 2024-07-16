@@ -17,21 +17,21 @@ import (
 func TestLifecycle(t *testing.T) {
 	testcases := []struct {
 		name       string
-		monitorAll bool
+		recoverAll bool
 	}{
 		{
-			name: "No Default Monitoring",
+			name: "No Default Recovering",
 		},
 		{
-			name:       "Monitor All",
-			monitorAll: true,
+			name:       "Recover All",
+			recoverAll: true,
 		},
 	}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
 
 			ev := make(test.EventLog, 100)
-			a := &lu.App{OnEvent: ev.Append, MonitorAll: false}
+			a := &lu.App{OnEvent: ev.Append, RecoverAll: false}
 
 			a.OnStartUp(func(ctx context.Context) error {
 				log.Info(ctx, "starting up")
@@ -46,7 +46,7 @@ func TestLifecycle(t *testing.T) {
 			a.AddProcess(
 				process.ContextLoop(noOpContextFunc(), noOpProcessFunc(), process.WithName("noop")),
 				process.ContextLoop(noOpContextFunc(), errProcessFunc(), process.WithName("error")),
-				process.ContextLoop(noOpContextFunc(), panicProcessFunc(), process.WithName("panic"), process.WithMonitor()),
+				process.ContextLoop(noOpContextFunc(), panicProcessFunc(), process.WithName("panic"), process.WithRecover()),
 				process.ContextLoop(noOpContextFunc(), breakProcessFunc(), process.WithName("continue loop")),
 				process.ContextLoop(noOpContextFunc(), breakProcessFunc(), process.WithName("break loop"), process.WithBreakableLoop()),
 			)

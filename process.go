@@ -31,9 +31,9 @@ type Process struct {
 	// prior to cancelling the Run context.
 	// This is for Processes where synchronous shutdown is necessary
 	Shutdown func(ctx context.Context) error
-	// Monitor determines if an individual process should be wrapped
+	// Recover determines if an individual process should be wrapped
 	// by the app to sandbox it from other processes so that it can
 	// both be restarted from errors and gracefully shutdown from
 	// panics etc. without affecting any other running processes.
-	Monitor bool
+	Recover bool
 }

@@ -17,21 +17,21 @@ import (
 func TestLifecycle(t *testing.T) {
 	testcases := []struct {
 		name       string
-		monitorAll bool
+		recoverAll bool
 	}{
 		{
-			name: "No Default Monitoring",
+			name: "No Default Recovering",
 		},
 		{
-			name:       "Monitor All",
-			monitorAll: true,
+			name:       "Recover All",
+			recoverAll: true,
 		},
 	}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
 
 			ev := make(test.EventLog, 100)
-			a := &lu.App{OnEvent: ev.Append, MonitorAll: tc.monitorAll}
+			a := &lu.App{OnEvent: ev.Append, RecoverAll: tc.recoverAll}
 
 			a.OnStartUp(func(ctx context.Context) error {
 				log.Info(ctx, "starting up")

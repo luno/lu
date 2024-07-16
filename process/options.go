@@ -29,8 +29,8 @@ type options struct {
 	// Flag to determine if we allow loops to break when an ErrBreakContextLoop is returned from the process function.
 	isBreakableLoop bool
 
-	// Determines if the process should be monitored by the app when running to handle abnormal terminations.
-	monitor bool
+	// Determines if the process should be recovered by the app when running to handle abnormal terminations.
+	recover bool
 }
 
 // SleepFunc returns how long to sleep between loops when there was no error.
@@ -187,10 +187,10 @@ func WithBreakableLoop() Option {
 	}
 }
 
-// WithMonitor sets a flag that determines if the process should be monitored by the app to
+// WithRecover sets a flag that determines if the process should be recovered by the app to
 // handle abnormal terminations
-func WithMonitor() Option {
+func WithRecover() Option {
 	return func(o *options) {
-		o.monitor = true
+		o.recover = true
 	}
 }

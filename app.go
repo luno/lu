@@ -39,9 +39,9 @@ type App struct {
 	// This hook is only called when using Run not when using Shutdown
 	OnShutdownErr func(ctx context.Context, err error) error
 
-	// MonitorAll determines if all running processes will be monitored by default rather than
+	// RecoverAll determines if all running processes will be recovered by default rather than
 	// on a one by one basis.
-	MonitorAll bool
+	RecoverAll bool
 
 	startupHooks  []hook
 	shutdownHooks []hook
@@ -63,7 +63,7 @@ func (a *App) setDefaults() {
 	if a.OnEvent == nil {
 		a.OnEvent = func(context.Context, Event) {}
 	}
-	a.MonitorAll = false
+	a.RecoverAll = false
 }
 
 // OnStartUp will call f before the app starts working
@@ -225,8 +225,8 @@ func (a *App) Launch(ctx context.Context) error {
 		}
 
 		ctx = labelContext(a.ctx, p.Name)
-		if a.MonitorAll || p.Monitor {
-			eg.Go(a.monitor(ctx, i))
+		if a.RecoverAll || p.Recover {
+			eg.Go(a.recover(ctx, i))
 		} else {
 			eg.Go(a.launch(ctx, i))
 		}
@@ -243,12 +243,12 @@ func (a *App) launch(ctx context.Context, i int) func() error {
 		a.OnEvent(ctx, Event{Type: ProcessStart, Name: p.Name})
 		defer a.OnEvent(ctx, Event{Type: ProcessEnd, Name: p.Name})
 		// NOTE: Any error returned by any of the processes will cause the entire App to terminate unless this
-		// has been called from inside the monitor function
+		// has been called from inside the recover function
 		return p.Run(ctx)
 	}
 }
 
-func (a *App) monitor(ctx context.Context, i int) func() error {
+func (a *App) recover(ctx context.Context, i int) func() error {
 	return func() error {
 		var err error
 		for {
