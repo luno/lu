@@ -92,9 +92,7 @@ func TestLifecycle(t *testing.T) {
 }
 
 func breakProcessFunc() func(context.Context) error {
-	return func(_ context.Context) error {
-		return lu.ErrBreakContextLoop
-	}
+	return func(_ context.Context) error { return lu.ErrBreakContextLoop }
 }
 
 func errProcessFunc() func(context.Context) error {

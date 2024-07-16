@@ -206,8 +206,6 @@ func (a *App) Launch(ctx context.Context) error {
 		return err
 	}
 
-	a.OnEvent(ctx, Event{Type: AppRunning})
-
 	// Create the app context now
 	appCtx, appCancel := context.WithCancel(ctx)
 	eg, appCtx := errgroup.WithContext(appCtx)
@@ -234,6 +232,7 @@ func (a *App) Launch(ctx context.Context) error {
 		}
 
 	}
+	a.OnEvent(ctx, Event{Type: AppRunning})
 	return ctx.Err()
 }
 

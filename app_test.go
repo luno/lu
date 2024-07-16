@@ -15,84 +15,102 @@ import (
 )
 
 func TestLifecycle(t *testing.T) {
-	ev := make(test.EventLog, 100)
-	a := &lu.App{OnEvent: ev.Append}
-
-	a.OnStartUp(func(ctx context.Context) error {
-		log.Info(ctx, "starting up")
-		return nil
-	}, lu.WithHookName("basic start hook"))
-
-	a.OnShutdown(func(ctx context.Context) error {
-		log.Info(ctx, "stopping")
-		return nil
-	}, lu.WithHookName("basic stop hook"))
-
-	a.AddProcess(
-		lu.Process{
-			Name: "one",
-			Run: func(ctx context.Context) error {
-				log.Info(ctx, "one")
-				<-ctx.Done()
-				return ctx.Err()
-			},
+	testcases := []struct {
+		name       string
+		monitorAll bool
+	}{
+		{
+			name: "No Default Monitoring",
 		},
-		lu.Process{
-			Name: "two",
-			Run: func(ctx context.Context) error {
-				log.Info(ctx, "two")
-				<-ctx.Done()
-				return ctx.Err()
-			},
+		{
+			name:       "Monitor All",
+			monitorAll: true,
 		},
-		lu.Process{
-			Name: "three",
-			Run: func(ctx context.Context) error {
-				log.Info(ctx, "three")
-				<-ctx.Done()
-				return ctx.Err()
-			},
-		},
-		process.ContextLoop(
-			func(ctx context.Context) (context.Context, context.CancelFunc, error) { return ctx, func() {}, nil },
-			func(ctx context.Context) error { return lu.ErrBreakContextLoop },
-			process.WithName("break loop"),
-			process.WithBreakableLoop()),
-	)
+	}
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
 
-	err := a.Launch(context.Background())
-	jtest.AssertNil(t, err)
+			ev := make(test.EventLog, 100)
+			a := &lu.App{OnEvent: ev.Append, MonitorAll: tc.monitorAll}
 
-	time.Sleep(250 * time.Millisecond)
+			a.OnStartUp(func(ctx context.Context) error {
+				log.Info(ctx, "starting up")
+				return nil
+			}, lu.WithHookName("basic start hook"))
 
-	err = a.Shutdown()
-	jtest.AssertNil(t, err)
+			a.OnShutdown(func(ctx context.Context) error {
+				log.Info(ctx, "stopping")
+				return nil
+			}, lu.WithHookName("basic stop hook"))
 
-	close(ev)
-	test.AssertEvents(t, ev,
-		test.Event{Type: lu.AppStartup},
-		test.Event{Type: lu.PreHookStart, Name: "basic start hook"},
-		test.Event{Type: lu.PostHookStart, Name: "basic start hook"},
-		test.AnyOrder(
-			test.Event{Type: lu.ProcessStart, Name: "one"},
-			test.Event{Type: lu.ProcessStart, Name: "two"},
-			test.Event{Type: lu.ProcessStart, Name: "three"},
-			test.Event{Type: lu.ProcessStart, Name: "break loop"},
-		),
-		test.AnyOrder(
-			test.Event{Type: lu.AppRunning},
-			test.Event{Type: lu.ProcessEnd, Name: "break loop"},
-		),
-		test.Event{Type: lu.AppTerminating},
-		test.AnyOrder(
-			test.Event{Type: lu.ProcessEnd, Name: "one"},
-			test.Event{Type: lu.ProcessEnd, Name: "two"},
-			test.Event{Type: lu.ProcessEnd, Name: "three"},
-		),
-		test.Event{Type: lu.PreHookStop, Name: "basic stop hook"},
-		test.Event{Type: lu.PostHookStop, Name: "basic stop hook"},
-		test.Event{Type: lu.AppTerminated},
-	)
+			a.AddProcess(
+				lu.Process{
+					Name: "one",
+					Run: func(ctx context.Context) error {
+						log.Info(ctx, "one")
+						<-ctx.Done()
+						return ctx.Err()
+					},
+				},
+				lu.Process{
+					Name: "two",
+					Run: func(ctx context.Context) error {
+						log.Info(ctx, "two")
+						<-ctx.Done()
+						return ctx.Err()
+					},
+				},
+				lu.Process{
+					Name: "three",
+					Run: func(ctx context.Context) error {
+						log.Info(ctx, "three")
+						<-ctx.Done()
+						return ctx.Err()
+					},
+				},
+				process.ContextLoop(
+					func(ctx context.Context) (context.Context, context.CancelFunc, error) { return ctx, func() {}, nil },
+					func(ctx context.Context) error { return lu.ErrBreakContextLoop },
+					process.WithName("break loop"),
+					process.WithBreakableLoop()),
+			)
+
+			err := a.Launch(context.Background())
+			jtest.AssertNil(t, err)
+
+			time.Sleep(250 * time.Millisecond)
+
+			err = a.Shutdown()
+			jtest.AssertNil(t, err)
+
+			close(ev)
+			test.AssertEvents(t, ev,
+				test.Event{Type: lu.AppStartup},
+				test.Event{Type: lu.PreHookStart, Name: "basic start hook"},
+				test.Event{Type: lu.PostHookStart, Name: "basic start hook"},
+				test.Event{Type: lu.AppRunning},
+				test.AnyOrder(
+					test.Event{Type: lu.ProcessStart, Name: "one"},
+					test.Event{Type: lu.ProcessStart, Name: "two"},
+					test.Event{Type: lu.ProcessStart, Name: "three"},
+					test.Event{Type: lu.ProcessStart, Name: "break loop"},
+				),
+				test.AnyOrder(
+					test.Event{Type: lu.AppRunning},
+					test.Event{Type: lu.ProcessEnd, Name: "break loop"},
+				),
+				test.Event{Type: lu.AppTerminating},
+				test.AnyOrder(
+					test.Event{Type: lu.ProcessEnd, Name: "one"},
+					test.Event{Type: lu.ProcessEnd, Name: "two"},
+					test.Event{Type: lu.ProcessEnd, Name: "three"},
+				),
+				test.Event{Type: lu.PreHookStop, Name: "basic stop hook"},
+				test.Event{Type: lu.PostHookStop, Name: "basic stop hook"},
+				test.Event{Type: lu.AppTerminated},
+			)
+		})
+	}
 }
 
 func TestShutdownWithParentContext(t *testing.T) {
