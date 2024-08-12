@@ -5,7 +5,7 @@ go 1.22.3
 require (
 	github.com/go-stack/stack v1.8.1
 	github.com/luno/jettison v0.0.0-20240722160230-b42bd507a5f6
-	github.com/luno/reflex v0.0.0-20240628090425-1f5700278387
+	github.com/luno/reflex v0.0.0-20240809131744-314bd1e7a8ff
 	github.com/prometheus/client_golang v1.19.1
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/stretchr/testify v1.9.0
