@@ -117,7 +117,7 @@ func (a *App) startup(ctx context.Context) error {
 	return ctx.Err()
 }
 
-func (a *App) cleanup(ctx context.Context) error {
+func (a *App) runShutdownHooks(ctx context.Context) error {
 	var errs []error
 	for idx, h := range a.shutdownHooks {
 		if ctx.Err() != nil {
@@ -148,6 +148,7 @@ func (a *App) cleanup(ctx context.Context) error {
 func (a *App) Run() int {
 	ac := NewAppContext(context.Background())
 	defer ac.Stop()
+	defer a.cleanup(ac.TerminationContext)
 
 	ctx := ac.AppContext
 
@@ -166,13 +167,7 @@ func (a *App) Run() int {
 		exit = 1
 	}
 
-	// TODO(adam): Move pid removal into Shutdown
-
-	// This should be called in Shutdown so that clients which call that instead of
-	// Run can get the right behaviour
-	if a.UseProcessFile {
-		removePIDFile(ctx)
-	}
+	log.Info(ctx, "Waiting to terminate", j.MKV{"exit_code": exit})
 
 	// Wait for termination in case we've only been told to quit
 	<-ac.TerminationContext.Done()
@@ -255,7 +250,7 @@ func (a *App) Shutdown() error {
 	defer a.OnEvent(ctx, Event{Type: AppTerminated})
 
 	defer func() {
-		err := a.cleanup(ctx)
+		err := a.runShutdownHooks(ctx)
 		if err != nil {
 			// NoReturnErr: Log
 			log.Error(ctx, errors.Wrap(err, ""))
@@ -323,6 +318,10 @@ func (a *App) RunningProcesses() []string {
 		}
 	}
 	return ret
+}
+
+func (a *App) cleanup(ctx context.Context) {
+	removePIDFile(ctx)
 }
 
 // Wait is a cancellable wait, it will return either when
