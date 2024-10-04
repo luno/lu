@@ -35,7 +35,9 @@ func createPIDFile() error {
 
 func removePIDFile(ctx context.Context) {
 	err := os.Remove(fileName)
-	if err != nil {
+	if errors.Is(err, os.ErrNotExist) {
+		// NoReturnErr: File already gone, no worries
+	} else if err != nil {
 		// NoReturnErr: We'll terminate after this so just log
 		log.Error(ctx, errors.Wrap(err, "remove pid file", j.KV("file", fileName)))
 	}
