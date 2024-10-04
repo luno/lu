@@ -142,11 +142,13 @@ func (a *App) runShutdownHooks(ctx context.Context) error {
 	return nil
 }
 
+var background = context.Background()
+
 // Run will start the App, running the startup Hooks, then the Processes.
 // It will wait for any signals before shutting down first the Processes then the shutdown Hooks.
 // This behaviour can be customised by using Launch, WaitForShutdown, and Shutdown.
 func (a *App) Run() int {
-	ac := NewAppContext(context.Background())
+	ac := NewAppContext(background)
 	defer ac.Stop()
 	defer a.cleanup(ac.TerminationContext)
 
