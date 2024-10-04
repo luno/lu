@@ -2,11 +2,14 @@ package lu_test
 
 import (
 	"context"
+	"io"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/luno/jettison/jtest"
 	"github.com/luno/jettison/log"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/luno/lu"
@@ -234,6 +237,69 @@ func TestRunningProcesses(t *testing.T) {
 			jtest.RequireNil(t, a.Launch(context.Background()))
 			jtest.Assert(t, tc.expShutdownError, a.Shutdown())
 			require.Equal(t, tc.expRunning, a.RunningProcesses())
+		})
+	}
+}
+
+func TestPIDRemoved(t *testing.T) {
+	tests := []struct {
+		name    string
+		app     func(t *testing.T) *lu.App
+		expExit int
+	}{
+		{
+			name: "not using pid",
+			app: func(t *testing.T) *lu.App {
+				var a lu.App
+				a.AddProcess(process.NoOp())
+				return &a
+			},
+			expExit: 1,
+		},
+		{
+			name: "normal app",
+			app: func(t *testing.T) *lu.App {
+				a := lu.App{UseProcessFile: true}
+				a.AddProcess(process.NoOp())
+				return &a
+			},
+			expExit: 1,
+		},
+		{
+			name: "app fails to start",
+			app: func(t *testing.T) *lu.App {
+				a := lu.App{UseProcessFile: true}
+				a.OnStartUp(func(ctx context.Context) error {
+					return io.ErrUnexpectedEOF
+				})
+				a.AddProcess(process.NoOp())
+				return &a
+			},
+			expExit: 1,
+		},
+		{
+			name: "app fails to shutdown",
+			app: func(t *testing.T) *lu.App {
+				a := lu.App{UseProcessFile: true}
+				a.OnShutdown(func(ctx context.Context) error {
+					return io.ErrUnexpectedEOF
+				})
+				a.AddProcess(process.NoOp())
+				return &a
+			},
+			expExit: 1,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			t.Cleanup(cancel)
+			lu.SetBackgroundContextForTesting(t, ctx)
+
+			exit := tc.app(t).Run()
+			assert.Equal(t, tc.expExit, exit)
+			_, err := os.Open("/tmp/lu.pid")
+			assert.True(t, os.IsNotExist(err))
 		})
 	}
 }
