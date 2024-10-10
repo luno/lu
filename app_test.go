@@ -322,7 +322,6 @@ func TestWaitFor(t *testing.T) {
 			ch: func(t *testing.T) chan int {
 				return nil
 			},
-			exp:    0,
 			expErr: io.ErrUnexpectedEOF,
 		},
 		{
@@ -335,7 +334,6 @@ func TestWaitFor(t *testing.T) {
 			ch: func(t *testing.T) chan int {
 				return nil
 			},
-			exp:    0,
 			expErr: context.Canceled,
 		},
 		{
