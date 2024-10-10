@@ -337,6 +337,18 @@ func TestWaitFor(t *testing.T) {
 			expErr: context.Canceled,
 		},
 		{
+			name: "time out",
+			ctx: func(t *testing.T) context.Context {
+				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+				t.Cleanup(cancel)
+				return ctx
+			},
+			ch: func(t *testing.T) chan int {
+				return nil
+			},
+			expErr: context.DeadlineExceeded,
+		},
+		{
 			name: "success",
 			ctx: func(t *testing.T) context.Context {
 				return context.Background()
