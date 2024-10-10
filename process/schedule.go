@@ -195,6 +195,9 @@ func (s tzSchedule) Next(t time.Time) time.Time {
 }
 
 type (
+	// ContextFunc should create a child context of ctx and return a cancellation function
+	// the cancel function will be called after the process has been executed
+	// TODO(adam): Offer a CancelCauseFunc option for cancelling the context
 	ContextFunc   = func(ctx context.Context) (context.Context, context.CancelFunc, error)
 	AwaitRoleFunc = func(role string) ContextFunc
 	ScheduledFunc func(ctx context.Context, lastRunTime, runTime time.Time, runID string) error
