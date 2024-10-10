@@ -37,7 +37,7 @@ func TestLifecycle(t *testing.T) {
 			Run: func(ctx context.Context) error {
 				log.Info(ctx, "one")
 				<-ctx.Done()
-				return ctx.Err()
+				return context.Cause(ctx)
 			},
 		},
 		lu.Process{
@@ -45,7 +45,7 @@ func TestLifecycle(t *testing.T) {
 			Run: func(ctx context.Context) error {
 				log.Info(ctx, "two")
 				<-ctx.Done()
-				return ctx.Err()
+				return context.Cause(ctx)
 			},
 		},
 		lu.Process{
@@ -53,7 +53,7 @@ func TestLifecycle(t *testing.T) {
 			Run: func(ctx context.Context) error {
 				log.Info(ctx, "three")
 				<-ctx.Done()
-				return ctx.Err()
+				return context.Cause(ctx)
 			},
 		},
 		process.ContextLoop(
@@ -103,7 +103,7 @@ func TestShutdownWithParentContext(t *testing.T) {
 	a.AddProcess(lu.Process{
 		Run: func(ctx context.Context) error {
 			<-ctx.Done()
-			return ctx.Err()
+			return context.Cause(ctx)
 		},
 	})
 
@@ -140,7 +140,7 @@ func TestProcessShutdown(t *testing.T) {
 				a.ShutdownTimeout = 100 * time.Millisecond
 				a.AddProcess(lu.Process{Shutdown: func(ctx context.Context) error {
 					<-ctx.Done()
-					return ctx.Err()
+					return context.Cause(ctx)
 				}})
 			},
 			expErr: context.DeadlineExceeded,
@@ -300,6 +300,73 @@ func TestPIDRemoved(t *testing.T) {
 			assert.Equal(t, tc.expExit, exit)
 			_, err := os.Open("/tmp/lu.pid")
 			assert.True(t, os.IsNotExist(err))
+		})
+	}
+}
+
+func TestWaitFor(t *testing.T) {
+	tests := []struct {
+		name   string
+		ctx    func(t *testing.T) context.Context
+		ch     func(t *testing.T) chan int
+		exp    int
+		expErr error
+	}{
+		{
+			name: "canceled with io error",
+			ctx: func(t *testing.T) context.Context {
+				ctx, cancel := context.WithCancelCause(context.Background())
+				cancel(io.ErrUnexpectedEOF)
+				return ctx
+			},
+			ch: func(t *testing.T) chan int {
+				return nil
+			},
+			expErr: io.ErrUnexpectedEOF,
+		},
+		{
+			name: "canceled",
+			ctx: func(t *testing.T) context.Context {
+				ctx, cancel := context.WithCancel(context.Background())
+				cancel()
+				return ctx
+			},
+			ch: func(t *testing.T) chan int {
+				return nil
+			},
+			expErr: context.Canceled,
+		},
+		{
+			name: "time out",
+			ctx: func(t *testing.T) context.Context {
+				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+				t.Cleanup(cancel)
+				return ctx
+			},
+			ch: func(t *testing.T) chan int {
+				return nil
+			},
+			expErr: context.DeadlineExceeded,
+		},
+		{
+			name: "success",
+			ctx: func(t *testing.T) context.Context {
+				return context.Background()
+			},
+			ch: func(t *testing.T) chan int {
+				ch := make(chan int, 1)
+				ch <- 1
+				close(ch)
+				return ch
+			},
+			exp: 1,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			i, err := lu.WaitFor(tc.ctx(t), tc.ch(t))
+			jtest.Require(t, tc.expErr, err)
+			assert.Equal(t, tc.exp, i)
 		})
 	}
 }

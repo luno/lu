@@ -98,8 +98,8 @@ func (a *App) startup(ctx context.Context) error {
 	defer pprof.SetGoroutineLabels(ctx)
 
 	for idx, h := range a.startupHooks {
-		if ctx.Err() != nil {
-			return ctx.Err()
+		if context.Cause(ctx) != nil {
+			return context.Cause(ctx)
 		}
 		a.OnEvent(ctx, Event{Type: PreHookStart, Name: h.Name})
 		hookCtx := ctx
@@ -114,14 +114,14 @@ func (a *App) startup(ctx context.Context) error {
 		}
 		a.OnEvent(ctx, Event{Type: PostHookStart, Name: h.Name})
 	}
-	return ctx.Err()
+	return context.Cause(ctx)
 }
 
 func (a *App) runShutdownHooks(ctx context.Context) error {
 	var errs []error
 	for idx, h := range a.shutdownHooks {
-		if ctx.Err() != nil {
-			return ctx.Err()
+		if context.Cause(ctx) != nil {
+			return context.Cause(ctx)
 		}
 		a.OnEvent(ctx, Event{Type: PreHookStop, Name: h.Name})
 		hookCtx := log.ContextWith(ctx, j.MKV{"hook_idx": idx, "hook_name": h.Name})
@@ -233,7 +233,7 @@ func (a *App) Launch(ctx context.Context) error {
 		})
 	}
 	a.OnEvent(ctx, Event{Type: AppRunning})
-	return ctx.Err()
+	return context.Cause(ctx)
 }
 
 // WaitForShutdown returns a channel that waits for the application to be cancelled.
@@ -331,7 +331,7 @@ func (a *App) cleanup(ctx context.Context) {
 // It will return an error if cancelled early.
 func Wait(ctx context.Context, cl clock.Clock, d time.Duration) error {
 	if d <= 0 {
-		return ctx.Err()
+		return context.Cause(ctx)
 	}
 	ti := cl.NewTimer(d)
 	defer ti.Stop()
@@ -357,7 +357,7 @@ func WaitFor[T any](ctx context.Context, ch <-chan T) (T, error) {
 		return v, nil
 	case <-ctx.Done():
 		var v T
-		return v, ctx.Err()
+		return v, context.Cause(ctx)
 	}
 }
 

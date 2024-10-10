@@ -12,7 +12,7 @@ func NoOp() lu.Process {
 		Name: "noop",
 		Run: func(ctx context.Context) error {
 			<-ctx.Done()
-			return ctx.Err()
+			return context.Cause(ctx)
 		},
 	}
 }
