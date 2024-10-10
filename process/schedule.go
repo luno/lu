@@ -240,7 +240,7 @@ func processLoop(ctx context.Context, process processFunc, wait waitFunc) error 
 			return err
 		}
 	}
-	return ctx.Err()
+	return context.Cause(ctx)
 }
 
 // processOnce may panic if awaitRole is nil or if when calling it returns a nil role.ContextFunc, and

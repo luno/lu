@@ -37,7 +37,7 @@ func TestLifecycle(t *testing.T) {
 			Run: func(ctx context.Context) error {
 				log.Info(ctx, "one")
 				<-ctx.Done()
-				return ctx.Err()
+				return context.Cause(ctx)
 			},
 		},
 		lu.Process{
@@ -45,7 +45,7 @@ func TestLifecycle(t *testing.T) {
 			Run: func(ctx context.Context) error {
 				log.Info(ctx, "two")
 				<-ctx.Done()
-				return ctx.Err()
+				return context.Cause(ctx)
 			},
 		},
 		lu.Process{
@@ -53,7 +53,7 @@ func TestLifecycle(t *testing.T) {
 			Run: func(ctx context.Context) error {
 				log.Info(ctx, "three")
 				<-ctx.Done()
-				return ctx.Err()
+				return context.Cause(ctx)
 			},
 		},
 		process.ContextLoop(
@@ -103,7 +103,7 @@ func TestShutdownWithParentContext(t *testing.T) {
 	a.AddProcess(lu.Process{
 		Run: func(ctx context.Context) error {
 			<-ctx.Done()
-			return ctx.Err()
+			return context.Cause(ctx)
 		},
 	})
 
@@ -140,7 +140,7 @@ func TestProcessShutdown(t *testing.T) {
 				a.ShutdownTimeout = 100 * time.Millisecond
 				a.AddProcess(lu.Process{Shutdown: func(ctx context.Context) error {
 					<-ctx.Done()
-					return ctx.Err()
+					return context.Cause(ctx)
 				}})
 			},
 			expErr: context.DeadlineExceeded,

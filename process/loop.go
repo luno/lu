@@ -103,7 +103,7 @@ func wrapContextLoop(getCtx ContextFunc, f lu.ProcessFunc, opts options) lu.Proc
 				return err
 			}
 		}
-		return ctx.Err()
+		return context.Cause(ctx)
 	}
 }
 
@@ -143,7 +143,7 @@ func ContextRetry(
 				break
 			}
 		}
-		return ctx.Err()
+		return context.Cause(ctx)
 	}
 	return p
 }
