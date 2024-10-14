@@ -42,7 +42,7 @@ func (c *consumer) Stop() error {
 func Test_ReflexConsumer_afterLoop(t *testing.T) {
 	awaitFunc := func(role string) func(ctx context.Context) (context.Context, context.CancelFunc, error) {
 		return func(ctx context.Context) (context.Context, context.CancelFunc, error) {
-			return ctx, func() {}, ctx.Err()
+			return ctx, func() {}, context.Cause(ctx)
 		}
 	}
 	makeStream := func(ctx context.Context, after string, opts ...reflex.StreamOption) (reflex.StreamClient, error) {
@@ -63,7 +63,7 @@ func Test_ReflexConsumer_afterLoop(t *testing.T) {
 func Test_ReflexConsumer_breakLoop(t *testing.T) {
 	awaitFunc := func(role string) func(ctx context.Context) (context.Context, context.CancelFunc, error) {
 		return func(ctx context.Context) (context.Context, context.CancelFunc, error) {
-			return ctx, func() {}, ctx.Err()
+			return ctx, func() {}, context.Cause(ctx)
 		}
 	}
 	makeStream := func(ctx context.Context, after string, opts ...reflex.StreamOption) (reflex.StreamClient, error) {
