@@ -370,3 +370,7 @@ func TestWaitFor(t *testing.T) {
 		})
 	}
 }
+
+func TestNoApp(t *testing.T) {
+	require.Nil(t, lu.NoApp())
+}

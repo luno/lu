@@ -393,3 +393,10 @@ func handleShutdownErr(a *App, ac AppContext, err error) error {
 	}
 	return err
 }
+
+// NoApp returns a nil app.
+// It can be used when you call a function that accepts a *App, but there's no lu app in scope.
+// f(lu.NoApp()) reads more clearly than f(nil).
+func NoApp() *App {
+	return nil
+}
