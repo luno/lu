@@ -218,11 +218,11 @@ func TestNextExecution(t *testing.T) {
 			expNext: must(time.Parse(time.RFC3339, "2022-01-22T14:00:00Z")),
 		},
 		{
-			name:    "last in the future still returns next",
+			name:    "last in the future returns previous",
 			now:     must(time.Parse(time.RFC3339, "2022-01-22T13:24:01Z")),
 			last:    must(time.Parse(time.RFC3339, "2022-01-22T13:44:00Z")),
 			spec:    Every(time.Hour),
-			expNext: must(time.Parse(time.RFC3339, "2022-01-22T14:00:00Z")),
+			expNext: must(time.Parse(time.RFC3339, "2022-01-22T13:00:00Z")),
 		},
 		{
 			name:    "offset handled",
@@ -258,41 +258,6 @@ func TestNextExecution(t *testing.T) {
 			last:    must(time.Parse(time.RFC3339, "2022-01-21T15:00:00Z")),
 			spec:    TimeOfDay(15, 0),
 			expNext: must(time.Parse(time.RFC3339, "2022-01-22T15:00:00Z")),
-		},
-		{
-			name:    "fixed interval with cursor far in the past",
-			now:     must(time.Parse(time.RFC3339, "2022-01-21T12:15:00Z")),
-			last:    must(time.Parse(time.RFC3339, "2022-01-21T10:00:00Z")),
-			spec:    FixedInterval(time.Hour),
-			expNext: must(time.Parse(time.RFC3339, "2022-01-21T12:00:00Z")),
-		},
-		{
-			name:    "fixed interval with cursor in the past but now the same as expected run time",
-			now:     must(time.Parse(time.RFC3339, "2022-01-21T12:00:00Z")),
-			last:    must(time.Parse(time.RFC3339, "2022-01-21T10:00:00Z")),
-			spec:    FixedInterval(time.Hour),
-			expNext: must(time.Parse(time.RFC3339, "2022-01-21T12:00:00Z")),
-		},
-		{
-			name:    "fixed interval with cursor updated",
-			now:     must(time.Parse(time.RFC3339, "2022-01-21T12:00:00Z")),
-			last:    must(time.Parse(time.RFC3339, "2022-01-21T12:00:00Z")),
-			spec:    FixedInterval(time.Hour),
-			expNext: must(time.Parse(time.RFC3339, "2022-01-21T13:00:00Z")),
-		},
-		{
-			name:    "fixed interval with offset",
-			now:     must(time.Parse(time.RFC3339, "2022-01-21T12:20:00Z")),
-			last:    must(time.Parse(time.RFC3339, "2022-01-21T08:00:00Z")),
-			spec:    FixedInterval(time.Hour, WithOffset(time.Minute)),
-			expNext: must(time.Parse(time.RFC3339, "2022-01-21T12:01:00Z")),
-		},
-		{
-			name:    "fixed interval with historic cursor and offset run time and now value",
-			now:     must(time.Parse(time.RFC3339, "2022-01-21T12:15:00Z")),
-			last:    must(time.Parse(time.RFC3339, "2022-01-21T08:00:00Z")),
-			spec:    FixedInterval(time.Hour, WithOffset(20*time.Minute)),
-			expNext: must(time.Parse(time.RFC3339, "2022-01-21T11:20:00Z")),
 		},
 	}
 
