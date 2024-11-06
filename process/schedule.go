@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/luno/jettison/errors"
+	"github.com/luno/jettison/j"
 	"github.com/luno/jettison/log"
 	"github.com/robfig/cron/v3"
 
@@ -123,26 +124,10 @@ func (r intervalSchedule) Next(t time.Time) time.Time {
 	return next
 }
 
-// FixedInterval unlike Every will execute on a specific interval only...regardless if the cursor has
-// fallen behind. For example, if you specify a duration of 5 min...but your process stops running for 2 hours, the
-// process will only execute at the next 5-min interval once, where process.Every will execute for all the missed 5-min intervals
-// during the 2-hour outage.
-func FixedInterval(period time.Duration, opts ...EveryOption) Schedule {
-	s := fixedIntervalSchedule{
-		intervalSchedule: newIntervalSchedule(period, opts...),
-	}
-
-	return s
-}
-
-type fixedIntervalSchedule struct {
-	intervalSchedule
-}
-
 // Previous this method returns the expected last run time. It uses this to compare with the
 // actual last run time and ensure that the process only runs once for all the intervals in between the
 // last run time and "now".
-func (r fixedIntervalSchedule) Previous(now time.Time) time.Time {
+func (r intervalSchedule) Previous(now time.Time) time.Time {
 	prev := now.Truncate(r.Period).Add(r.Offset)
 	if prev.After(now) {
 		prev = prev.Add(-1 * r.Period)
@@ -150,6 +135,10 @@ func (r fixedIntervalSchedule) Previous(now time.Time) time.Time {
 
 	return prev
 }
+
+// FixedInterval is deprecated.
+// Deprecated: Use Every.
+var FixedInterval = Every
 
 // TimeOfDay returns a Schedule that will trigger at the same time every day
 // hour is based on the 24-hour clock.
@@ -282,7 +271,13 @@ func (r scheduleRunner) doNext(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
 	next := nextExecution(r.o.clock.Now(), lastDone, r.when, r.o.name)
+
+	ctx = log.ContextWith(ctx, j.MKV{
+		"schedule_last": lastDone,
+		"schedule_next": next,
+	})
 
 	if r.o.maxErrors > 0 && r.ErrCount >= r.o.maxErrors {
 		return setRunDone(ctx, next, r.cursor, r.o.name)
@@ -293,6 +288,8 @@ func (r scheduleRunner) doNext(ctx context.Context) error {
 	}
 
 	runID := fmt.Sprintf("%s_%d", r.o.name, next.Unix())
+
+	ctx = log.ContextWith(ctx, j.MKV{"schedule_run_id": runID})
 
 	if err := r.f(ctx, lastDone, next, runID); err != nil {
 		return err
