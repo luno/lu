@@ -165,11 +165,13 @@ func (a *App) Run() int {
 	err := a.Shutdown()
 	if err != nil {
 		// NoReturnErr: Handle, log, and exit
+		var code int
 		err = handleShutdownErr(a, ac, err)
 		if err != nil {
 			log.Error(ctx, errors.Wrap(err, "app shutdown"))
+			code = 1
 		}
-		return 1
+		return code
 	}
 
 	log.Info(ctx, "Waiting to terminate")
