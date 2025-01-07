@@ -159,24 +159,27 @@ func (a *App) Run() int {
 		log.Error(ctx, errors.Wrap(err, "app launch"))
 		return 1
 	}
+
 	<-a.WaitForShutdown()
-	var exit int
+
 	err := a.Shutdown()
 	if err != nil {
-		// NoReturnErr: Log
+		// NoReturnErr: Handle, log, and exit
 		err = handleShutdownErr(a, ac, err)
-		log.Error(ctx, errors.Wrap(err, "app shutdown"))
-		exit = 1
+		if err != nil {
+			log.Error(ctx, errors.Wrap(err, "app shutdown"))
+		}
+		return 1
 	}
 
-	log.Info(ctx, "Waiting to terminate", j.MKV{"exit_code": exit})
+	log.Info(ctx, "Waiting to terminate")
 
 	// Wait for termination in case we've only been told to quit
 	<-ac.TerminationContext.Done()
 
-	log.Info(ctx, "App terminated", j.MKV{"exit_code": exit})
+	log.Info(ctx, "App terminated")
 
-	return exit
+	return 0
 }
 
 // Launch will run all the startup hooks and launch all the processes.
