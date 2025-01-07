@@ -159,24 +159,29 @@ func (a *App) Run() int {
 		log.Error(ctx, errors.Wrap(err, "app launch"))
 		return 1
 	}
+
 	<-a.WaitForShutdown()
-	var exit int
+
 	err := a.Shutdown()
 	if err != nil {
-		// NoReturnErr: Log
+		// NoReturnErr: Handle, log, and exit
+		var code int
 		err = handleShutdownErr(a, ac, err)
-		log.Error(ctx, errors.Wrap(err, "app shutdown"))
-		exit = 1
+		if err != nil {
+			log.Error(ctx, errors.Wrap(err, "app shutdown"))
+			code = 1
+		}
+		return code
 	}
 
-	log.Info(ctx, "Waiting to terminate", j.MKV{"exit_code": exit})
+	log.Info(ctx, "Waiting to terminate")
 
 	// Wait for termination in case we've only been told to quit
 	<-ac.TerminationContext.Done()
 
-	log.Info(ctx, "App terminated", j.MKV{"exit_code": exit})
+	log.Info(ctx, "App terminated")
 
-	return exit
+	return 0
 }
 
 // Launch will run all the startup hooks and launch all the processes.
@@ -372,19 +377,17 @@ func SyncGroupWait(wg *sync.WaitGroup) <-chan struct{} {
 }
 
 func handleShutdownErr(a *App, ac AppContext, err error) error {
-	if !errors.Is(err, context.DeadlineExceeded) {
-		return err
+	if errors.Is(err, context.DeadlineExceeded) {
+		running := a.RunningProcesses()
+		if len(running) > 0 {
+			errs := make([]error, 0, len(running))
+			for _, p := range running {
+				err := errors.Wrap(errProcessStillRunning, "", j.KV("process", p))
+				errs = append(errs, err)
+			}
+			err = errors.Join(errs...)
+		}
 	}
-	running := a.RunningProcesses()
-	if len(running) == 0 {
-		return err
-	}
-	errs := make([]error, 0, len(running))
-	for _, p := range running {
-		err := errors.Wrap(errProcessStillRunning, "", j.KV("process", p))
-		errs = append(errs, err)
-	}
-	err = errors.Join(errs...)
 	if ac.TerminationContext.Err() != nil {
 		return err
 	}
