@@ -7,10 +7,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/luno/jettison/errors"
 	"github.com/luno/jettison/jtest"
 	"github.com/luno/jettison/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"k8s.io/utils/clock"
 
 	"github.com/luno/lu"
 	"github.com/luno/lu/process"
@@ -241,11 +243,12 @@ func TestRunningProcesses(t *testing.T) {
 	}
 }
 
-func TestPIDRemoved(t *testing.T) {
+func TestRun(t *testing.T) {
 	tests := []struct {
-		name    string
-		app     func(t *testing.T) *lu.App
-		expExit int
+		name      string
+		app       func(t *testing.T) *lu.App
+		expExit   int
+		expCtxErr error
 	}{
 		{
 			name: "not using pid",
@@ -254,7 +257,8 @@ func TestPIDRemoved(t *testing.T) {
 				a.AddProcess(process.NoOp())
 				return &a
 			},
-			expExit: 1,
+			expExit:   1,
+			expCtxErr: context.DeadlineExceeded,
 		},
 		{
 			name: "normal app",
@@ -263,7 +267,8 @@ func TestPIDRemoved(t *testing.T) {
 				a.AddProcess(process.NoOp())
 				return &a
 			},
-			expExit: 1,
+			expExit:   1,
+			expCtxErr: context.DeadlineExceeded,
 		},
 		{
 			name: "app fails to start",
@@ -287,7 +292,45 @@ func TestPIDRemoved(t *testing.T) {
 				a.AddProcess(process.NoOp())
 				return &a
 			},
+			expExit:   1,
+			expCtxErr: context.DeadlineExceeded,
+		},
+		{
+			name: "app shuts itself down",
+			app: func(t *testing.T) *lu.App {
+				var a lu.App
+				a.AddProcess(lu.Process{Run: func(ctx context.Context) error {
+					if err := lu.Wait(ctx, clock.RealClock{}, 10*time.Millisecond); err != nil {
+						return err
+					}
+					return errors.New("terminate the app please")
+				}})
+				return &a
+			},
 			expExit: 1,
+		},
+		{
+			name: "app shuts itself down and handles it",
+			app: func(t *testing.T) *lu.App {
+				var a lu.App
+
+				termErr := errors.New("terminate the app please")
+
+				a.AddProcess(lu.Process{Run: func(ctx context.Context) error {
+					if err := lu.Wait(ctx, clock.RealClock{}, 10*time.Millisecond); err != nil {
+						return err
+					}
+					return termErr
+				}})
+				a.OnShutdownErr = func(ctx context.Context, err error) error {
+					if errors.Is(err, termErr) {
+						return nil
+					}
+					return err
+				}
+				return &a
+			},
+			expExit: 0,
 		},
 	}
 	for _, tc := range tests {
@@ -300,6 +343,8 @@ func TestPIDRemoved(t *testing.T) {
 			assert.Equal(t, tc.expExit, exit)
 			_, err := os.Open("/tmp/lu.pid")
 			assert.True(t, os.IsNotExist(err))
+
+			jtest.Assert(t, tc.expCtxErr, ctx.Err())
 		})
 	}
 }

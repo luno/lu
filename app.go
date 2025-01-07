@@ -377,19 +377,17 @@ func SyncGroupWait(wg *sync.WaitGroup) <-chan struct{} {
 }
 
 func handleShutdownErr(a *App, ac AppContext, err error) error {
-	if !errors.Is(err, context.DeadlineExceeded) {
-		return err
+	if errors.Is(err, context.DeadlineExceeded) {
+		running := a.RunningProcesses()
+		if len(running) > 0 {
+			errs := make([]error, 0, len(running))
+			for _, p := range running {
+				err := errors.Wrap(errProcessStillRunning, "", j.KV("process", p))
+				errs = append(errs, err)
+			}
+			err = errors.Join(errs...)
+		}
 	}
-	running := a.RunningProcesses()
-	if len(running) == 0 {
-		return err
-	}
-	errs := make([]error, 0, len(running))
-	for _, p := range running {
-		err := errors.Wrap(errProcessStillRunning, "", j.KV("process", p))
-		errs = append(errs, err)
-	}
-	err = errors.Join(errs...)
 	if ac.TerminationContext.Err() != nil {
 		return err
 	}
