@@ -240,7 +240,8 @@ func processLoop(ctx context.Context, process processFunc, wait waitFunc) error 
 // calling resolveOptions on the opts parameter before passing it into this function; it my also panic if
 // runner.f is nil as well.
 func processOnce(ctx context.Context, awaitRole AwaitRoleFunc, opts options, runner *scheduleRunner) time.Duration {
-	err := runWithContext(ctx, awaitRole(opts.role), runner.doNext)
+	err := runWithContext(ctx, awaitRole(opts.role), runner.doNext(opts))
+
 	sleep := opts.sleep()
 	if err != nil && !errors.Is(err, context.Canceled) {
 		// NoReturnErr: Log critical errors and continue loop
@@ -266,39 +267,58 @@ type scheduleRunner struct {
 // doNext executes the next iteration of the schedule.
 // We use a cursor to keep track of the last completed run.
 // If we miss running multiple runs of the cron then we will only attempt to run the latest one.
-func (r scheduleRunner) doNext(ctx context.Context) error {
-	lastDone, err := getLastRun(ctx, r.cursor, r.o.name)
-	if err != nil {
-		return err
+func (r scheduleRunner) doNext(opts options) func(ctx context.Context) error {
+	return func(ctx context.Context) error {
+		lastDone, err := getLastRun(ctx, r.cursor, r.o.name)
+		if err != nil {
+			return err
+		}
+
+		next := nextExecution(r.o.clock.Now(), lastDone, r.when, r.o.name)
+
+		ctx = log.ContextWith(ctx, j.MKV{
+			"schedule_last": lastDone,
+			"schedule_next": next,
+		})
+
+		for ctx.Err() == nil {
+			if r.o.maxErrors > 0 && r.ErrCount >= r.o.maxErrors {
+				return setRunDone(ctx, next, r.cursor, r.o.name)
+			}
+
+			if err := lu.WaitUntil(ctx, r.o.clock, next); err != nil {
+				return err
+			}
+
+			runID := fmt.Sprintf("%s_%d", r.o.name, next.Unix())
+
+			ctx = log.ContextWith(ctx, j.MKV{"schedule_run_id": runID})
+
+			err = r.f(ctx, lastDone, next, runID)
+			if err == nil {
+				return setRunDone(ctx, next, r.cursor, r.o.name)
+			}
+
+			r.ErrCount += 1
+			// NoReturnErr: Log critical errors and continue loop
+			if !errors.Is(err, context.Canceled) {
+				opts.errCounter.Inc()
+				log.Error(ctx, err)
+			}
+
+			sleep := opts.errorSleep(r.ErrCount, err)
+			next = next.Add(sleep)
+		}
+
+		return nil
 	}
-
-	next := nextExecution(r.o.clock.Now(), lastDone, r.when, r.o.name)
-
-	ctx = log.ContextWith(ctx, j.MKV{
-		"schedule_last": lastDone,
-		"schedule_next": next,
-	})
-
-	if r.o.maxErrors > 0 && r.ErrCount >= r.o.maxErrors {
-		return setRunDone(ctx, next, r.cursor, r.o.name)
-	}
-
-	if err := lu.WaitUntil(ctx, r.o.clock, next); err != nil {
-		return err
-	}
-
-	runID := fmt.Sprintf("%s_%d", r.o.name, next.Unix())
-
-	ctx = log.ContextWith(ctx, j.MKV{"schedule_run_id": runID})
-
-	if err := r.f(ctx, lastDone, next, runID); err != nil {
-		return err
-	}
-
-	return setRunDone(ctx, next, r.cursor, r.o.name)
 }
 
 func nextExecution(now, last time.Time, s Schedule, name string) time.Time {
+	if is, ok := s.(intervalSchedule); ok {
+		last = last.Truncate(is.Period)
+	}
+
 	fromNow := s.Next(now)
 	if last.IsZero() {
 		return fromNow
