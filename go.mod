@@ -1,6 +1,7 @@
 module github.com/luno/lu
 
 go 1.22.3
+toolchain go1.24.1
 
 require (
 	github.com/go-stack/stack v1.8.1
@@ -9,7 +10,7 @@ require (
 	github.com/prometheus/client_golang v1.21.1
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/stretchr/testify v1.10.0
-	golang.org/x/sync v0.10.0
+	golang.org/x/sync v0.11.0
 	k8s.io/utils v0.0.0-20241210054802-24370beab758
 )
 
@@ -25,9 +26,9 @@ require (
 	github.com/prometheus/procfs v0.15.1 // indirect
 	go.opentelemetry.io/otel v1.28.0 // indirect
 	go.opentelemetry.io/otel/trace v1.28.0 // indirect
-	golang.org/x/net v0.33.0 // indirect
-	golang.org/x/sys v0.28.0 // indirect
-	golang.org/x/text v0.21.0 // indirect
+	golang.org/x/net v0.36.0 // indirect
+	golang.org/x/sys v0.30.0 // indirect
+	golang.org/x/text v0.22.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240716161551-93cc26a95ae9 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240528184218-531527333157 // indirect
 	google.golang.org/grpc v1.65.0 // indirect
