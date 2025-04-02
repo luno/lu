@@ -54,3 +54,6 @@ flowchart TD
     classDef integration fill:#cfc,stroke:#333,stroke-width:2px;
     classDef utility fill:#fc9,stroke:#333,stroke-width:2px;
 ```
+
+Diagram generated via https://gitdiagram.com/luno/lu (which uses https://github.com/ahmedkhaleel2004/gitdiagram). 
+Regenerate again if the structure changes, and paste the diagram in here. 
