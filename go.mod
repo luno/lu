@@ -6,7 +6,7 @@ require (
 	github.com/go-stack/stack v1.8.1
 	github.com/luno/jettison v0.0.0-20250603184958-abc68693e98f
 	github.com/luno/reflex v0.0.0-20250529053715-2da8b8dc4425
-	github.com/prometheus/client_golang v1.21.1
+	github.com/prometheus/client_golang v1.22.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/sync v0.12.0
