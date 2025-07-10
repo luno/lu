@@ -9,7 +9,7 @@ require (
 	github.com/prometheus/client_golang v1.22.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/stretchr/testify v1.10.0
-	golang.org/x/sync v0.15.0
+	golang.org/x/sync v0.16.0
 	k8s.io/utils v0.0.0-20250604170112-4c0f3b243397
 )
 
