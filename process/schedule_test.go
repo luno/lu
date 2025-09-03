@@ -28,17 +28,6 @@ type expectRun struct {
 	alreadyRan bool
 }
 
-type memCursor map[string]string
-
-func (m memCursor) Get(_ context.Context, name string) (string, error) {
-	return m[name], nil
-}
-
-func (m memCursor) Set(_ context.Context, name string, value string) error {
-	m[name] = value
-	return nil
-}
-
 //goland:noinspection GoExportedFuncWithUnexportedType
 func ExpectRun(t *testing.T, run run) *expectRun {
 	return &expectRun{
@@ -154,7 +143,7 @@ func TestSchedule(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 			t.Cleanup(cancel)
 
-			cc := make(memCursor)
+			cc := NewMemoryCursor()
 			cl := clocktesting.NewFakeClock(tc.startTime)
 
 			err := cc.Set(ctx, cursorName, tc.startCursor)
@@ -470,7 +459,7 @@ func TestRetries(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			clock := clocktesting.NewFakeClock(time.Unix(10_000, 0))
-			cursor := make(memCursor)
+			cursor := NewMemoryCursor()
 			o := options{
 				name:       "test_retry",
 				errorSleep: ErrorSleepFor(0),
@@ -665,7 +654,7 @@ func Test_processOnce(t *testing.T) {
 				}
 			}
 			r := scheduleRunner{
-				cursor: make(memCursor),
+				cursor: NewMemoryCursor(),
 				o:      options{name: "test_processFunc", clock: clocktesting.NewFakeClock(time.Unix(10_000, 0))},
 				when:   Poll(0),
 				f:      tt.f,
@@ -717,7 +706,7 @@ func TestLastScheduled(t *testing.T) {
 					return ctx, func() {}, nil
 				}
 			}
-			process := Scheduled(awaitRole, make(memCursor), "TestLastScheduled", Poll(1), tt.f)
+			process := Scheduled(awaitRole, NewMemoryCursor(), "TestLastScheduled", Poll(1), tt.f)
 			tf := func() { _ = process.Run(ctx) }
 			if tt.panics {
 				require.Panics(t, tf)
@@ -786,4 +775,17 @@ func TestCronWithPrevious(t *testing.T) {
 			assert.Equal(t, tc.expNext, next)
 		})
 	}
+}
+
+func TestActiveContext(t *testing.T) {
+	ctx := context.WithValue(t.Context(), "test", "test")
+
+	roleFunc := ActiveContext()
+	ctxFunc := roleFunc("")
+	resCtx, cancel, err := ctxFunc(ctx)
+	jtest.RequireNil(t, err)
+	assert.Equal(t, ctx.Value("test"), resCtx.Value("test"))
+
+	cancel()
+	jtest.Require(t, context.Canceled, resCtx.Err())
 }

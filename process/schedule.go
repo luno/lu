@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/luno/jettison/errors"
@@ -346,4 +347,43 @@ func getLastRun(ctx context.Context, curs Cursor, name string) (time.Time, error
 func setRunDone(ctx context.Context, t time.Time, curs Cursor, name string) error {
 	unixSec := strconv.FormatInt(t.Unix(), 10)
 	return curs.Set(ctx, name, unixSec)
+}
+
+// ActiveContext return a role function that will always activate using the
+// active context. This can be used to ensure a process always executes, regardless of the
+// role assigned to it.
+func ActiveContext() AwaitRoleFunc {
+	return func(_ string) ContextFunc {
+		return func(ctx context.Context) (context.Context, context.CancelFunc, error) {
+			ctx, cancel := context.WithCancel(ctx)
+			return ctx, cancel, nil
+		}
+	}
+}
+
+// NewMemoryCursor is used when you want to keep the cursor active in memory. These cursors
+// are not persisted and will be recreated on instance restart. This is useful if you want
+// to run a scheduled process that might need to execute on multiple instances simultaneously.
+func NewMemoryCursor() Cursor {
+	return &memoryCursor{
+		cursors: make(map[string]string),
+	}
+}
+
+type memoryCursor struct {
+	cursorMutex sync.RWMutex
+	cursors     map[string]string
+}
+
+func (m *memoryCursor) Get(_ context.Context, name string) (string, error) {
+	m.cursorMutex.RLock()
+	defer m.cursorMutex.RUnlock()
+	return m.cursors[name], nil
+}
+
+func (m *memoryCursor) Set(_ context.Context, name string, value string) error {
+	m.cursorMutex.Lock()
+	defer m.cursorMutex.Unlock()
+	m.cursors[name] = value
+	return nil
 }
