@@ -5,7 +5,7 @@ go 1.24.3
 require (
 	github.com/go-stack/stack v1.8.1
 	github.com/luno/jettison v0.0.0-20250922172348-1bcbb9f4536b
-	github.com/luno/reflex v0.0.0-20250908112956-ee1567cc64a5
+	github.com/luno/reflex v0.0.0-20251020162718-5ce514550fe8
 	github.com/prometheus/client_golang v1.23.2
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/stretchr/testify v1.11.1
@@ -32,8 +32,8 @@ require (
 	golang.org/x/sys v0.35.0 // indirect
 	golang.org/x/text v0.28.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250707201910-8d1bb00bc6a7 // indirect
-	google.golang.org/grpc v1.75.1 // indirect
-	google.golang.org/protobuf v1.36.8 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250804133106-a7a43d27e69b // indirect
+	google.golang.org/grpc v1.76.0 // indirect
+	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
