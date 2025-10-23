@@ -4,7 +4,7 @@ go 1.24.3
 
 require (
 	github.com/go-stack/stack v1.8.1
-	github.com/luno/jettison v0.0.0-20250922172348-1bcbb9f4536b
+	github.com/luno/jettison v0.0.0-20251004142841-a8f926feeafb
 	github.com/luno/reflex v0.0.0-20251020162718-5ce514550fe8
 	github.com/prometheus/client_golang v1.23.2
 	github.com/robfig/cron/v3 v3.0.1
