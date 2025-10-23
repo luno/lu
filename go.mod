@@ -1,6 +1,6 @@
 module github.com/luno/lu
 
-go 1.24.3
+go 1.25.3
 
 require (
 	github.com/go-stack/stack v1.8.1
