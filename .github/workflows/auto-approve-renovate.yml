@@ -8,6 +8,6 @@ on:
 
 jobs:
   auto-approve:
-    uses: luno/.github/.github/workflows/auto-approve-renovate.yml@9ac0f946fd4df9bcd0a7c83e17263acf9f5841d1
+    uses: luno/.github/.github/workflows/auto-approve-renovate.yml@bed3271ff217a47465df382ff478db33e79aef1f
     permissions:
       pull-requests: write
