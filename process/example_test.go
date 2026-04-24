@@ -3,9 +3,9 @@
 package process_test
 
 import (
-	"bitx/app/lu/process"
 	"context"
 	"fmt"
+	"luno/pkg/app/lu/process"
 	"time"
 
 	"github.com/luno/jettison/errors"
