@@ -26,8 +26,8 @@ github.com/kylelemons/godebug v1.1.0 h1:RPNrshWIDI6G2gRW9EHilWtl7Z6Sb1BR0xunSBf0
 github.com/kylelemons/godebug v1.1.0/go.mod h1:9/0rRGxNHcop5bhtWyNeEfOS8JIWk580+fNqagV/RAw=
 github.com/luno/jettison v0.0.0-20260430092942-5b6b66078128 h1:UY4pSZMAvsuRoxX86CM7HXxrgHik6dp2xVDa6lPr+Ow=
 github.com/luno/jettison v0.0.0-20260430092942-5b6b66078128/go.mod h1:vG6EX6acGWTqE/ig9D2xTzeGEmv/WDN3VW4bGVgQtjg=
-github.com/luno/reflex v0.0.0-20260505102650-5d0291c5389c h1:Qw9AtAqb/OOxmaoZPew5FACl++t0JRIc0+4Jx9gG6RY=
-github.com/luno/reflex v0.0.0-20260505102650-5d0291c5389c/go.mod h1:xznMOjzx7qNi+A9HhDwtkImY4g1vwSmYsCQxbBCe+aI=
+github.com/luno/reflex v0.0.0-20260505115348-df5c0a5e7a05 h1:/1midljajoDMo7zu0WsPKAiyW5qz302SZsI4pHHPpGU=
+github.com/luno/reflex v0.0.0-20260505115348-df5c0a5e7a05/go.mod h1:xznMOjzx7qNi+A9HhDwtkImY4g1vwSmYsCQxbBCe+aI=
 github.com/mattn/go-colorable v0.1.14 h1:9A9LHSqF/7dyVVX6g0U9cwm9pG3kP9gSzcuIPHPsaIE=
 github.com/mattn/go-colorable v0.1.14/go.mod h1:6LmQG8QLFO4G5z1gPvYEzlUgJ2wF+stgPZH1UqBm1s8=
 github.com/mattn/go-isatty v0.0.20 h1:xfD0iDuEKnDkl03q4limB+vH+GxLEtL/jb4xVJSWWEY=
